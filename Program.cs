@@ -15,6 +15,8 @@ internal class Program
 
     private static readonly string[] FoldersToMatch =
     {
+        "bak",
+        "prev",
         "recovery",
         "_DSAS_CACHE"
     };
