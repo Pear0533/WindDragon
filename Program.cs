@@ -8,15 +8,17 @@ internal class Program
     {
         "bak",
         "prev",
-        "emevd.dcx.js",
-        "_DSAS_PROJECT.json",
-        "esdtoolconfig.json"
+        "backup",
+        ".js",
+        "json"
     };
 
     private static readonly string[] FoldersToMatch =
     {
         "bak",
         "prev",
+        "backup",
+        "dcx",
         "recovery",
         "_DSAS_CACHE"
     };
@@ -144,7 +146,7 @@ internal class Program
                 {
                     case "0":
                     {
-                        Console.Write("Please specify a desired mod folder path: ");
+                        Console.Write("Please specify a desired mod folder path:\n> ");
                         string? folderPath = Console.ReadLine();
                         if (string.IsNullOrEmpty(folderPath))
                         {
