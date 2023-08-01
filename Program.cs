@@ -10,6 +10,8 @@ internal class Program
         "prev",
         "backup",
         ".js",
+        ".rar",
+        ".zip",
         "json"
     };
 
