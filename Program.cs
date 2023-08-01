@@ -1,29 +1,20 @@
 ﻿using Microsoft.Win32;
+using System.Reflection;
 
 namespace WindDragon;
 
 internal class Program
 {
-    private static readonly string[] FilesToMatch =
-    {
-        "bak",
-        "prev",
-        "backup",
-        ".js",
-        ".rar",
-        ".zip",
-        "json"
-    };
+    private static readonly string AppRootPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) ?? "";
+    private static readonly string BlacklistedFilesConfig = $"{AppRootPath}\\configs\\blacklisted_files.wdconfig";
+    private static readonly string BlacklistedFoldersConfig = $"{AppRootPath}\\configs\\blacklisted_folders.wdconfig";
+    private static readonly string WhitelistedFilesConfig = $"{AppRootPath}\\configs\\whitelisted_files.wdconfig";
+    private static readonly string WhitelistedFoldersConfig = $"{AppRootPath}\\configs\\whitelisted_folders.wdconfig";
 
-    private static readonly string[] FoldersToMatch =
-    {
-        "bak",
-        "prev",
-        "backup",
-        "dcx",
-        "recovery",
-        "_DSAS_CACHE"
-    };
+    private static List<string> BlacklistedFiles = new();
+    private static List<string> BlacklistedFolders = new();
+    private static List<string> WhitelistedFiles = new();
+    private static List<string> WhitelistedFolders = new();
 
     private const string ClassesRegistryKey = "Software\\Classes";
 
@@ -109,60 +100,93 @@ internal class Program
 
     private static void CleanModFolder(string path)
     {
+        string modFolderName = new DirectoryInfo(path).Name;
+        if (!Directory.Exists(path))
+        {
+            Console.WriteLine($"Mod folder {modFolderName} does not exist.");
+            Console.ReadKey();
+            return;
+        }
         string[] directories = Directory.GetDirectories(path, "*.*", SearchOption.AllDirectories);
         string[] files = Directory.GetFiles(path, "*.*", SearchOption.AllDirectories);
         files = files.Where(i => !string.IsNullOrEmpty(Path.GetFileNameWithoutExtension(i))).ToArray();
+        files = files.Where(i => i.Split(Path.DirectorySeparatorChar).All(t => !BlacklistedFolders.Any(t.Contains))).ToArray();
         foreach (string file in files)
         {
             string fileName = Path.GetFileName(file);
-            if (!File.Exists(file) || !FilesToMatch.Any(fileName.Contains)) continue;
+            if (BlacklistedFiles.Any(fileName.Contains)) continue;
+            if (!File.Exists(file) || !WhitelistedFiles.Any(fileName.Contains)) continue;
             DeleteFile(file);
         }
         foreach (string dir in directories)
         {
             string dirName = new DirectoryInfo(dir).Name;
-            if (!Directory.Exists(dir) || !FoldersToMatch.Any(dirName.Contains)) continue;
+            if (BlacklistedFolders.Contains(dirName)) continue;
+            if (!Directory.Exists(dir) || !WhitelistedFolders.Any(dirName.Contains)) continue;
             DeleteDirectory(dir);
         }
         Console.WriteLine("Mod folder cleanup complete!");
         Console.ReadKey();
     }
 
+    private static List<string> ReadConfig(string path)
+    {
+        return File.ReadAllText(path).Split("\r\n").Where(i => !string.IsNullOrEmpty(i)).ToList();
+    }
+
+    private static bool ReadConfigs()
+    {
+        try
+        {
+            Console.Clear();
+            Console.WriteLine("Reading WindDragon configuration files...\n");
+            BlacklistedFiles = ReadConfig(BlacklistedFilesConfig);
+            BlacklistedFolders = ReadConfig(BlacklistedFoldersConfig);
+            WhitelistedFiles = ReadConfig(WhitelistedFilesConfig);
+            WhitelistedFolders = ReadConfig(WhitelistedFoldersConfig);
+            return true;
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine($"Failed to read one or more required configuration files.\n\nReason:\n\n{e}");
+            return false;
+        }
+    }
+
     private static void MainMenu(IReadOnlyList<string> args)
     {
         while (true)
         {
+            if (!ReadConfigs()) break;
             Console.Clear();
             if (args.ElementAtOrDefault(0) != null)
             {
                 CleanModFolder(args[0]);
+                break;
             }
-            else
+            Console.WriteLine("Welcome to WindDragon!\n");
+            Console.WriteLine("This tool is specially crafted to effortlessly tidy up DS3/ER mod folders.\n");
+            Console.Write("Type 0 to specify a mod folder for cleaning, or 1 to modify WindDragon context menu registration.\n> ");
+            string? option = Console.ReadLine();
+            Console.WriteLine("\n");
+            switch (option)
             {
-                Console.WriteLine("Welcome to WindDragon!\n");
-                Console.WriteLine("This tool is specially crafted to effortlessly tidy up DS3/ER mod folders.\n");
-                Console.Write("Type 0 to specify a mod folder for cleaning, or 1 to modify WindDragon context menu registration.\n> ");
-                string? option = Console.ReadLine();
-                Console.WriteLine("\n");
-                switch (option)
+                case "0":
                 {
-                    case "0":
+                    Console.Write("Please specify a desired mod folder path:\n> ");
+                    string? folderPath = Console.ReadLine();
+                    Console.WriteLine("\n");
+                    if (string.IsNullOrEmpty(folderPath))
                     {
-                        Console.Write("Please specify a desired mod folder path:\n> ");
-                        string? folderPath = Console.ReadLine();
-                        if (string.IsNullOrEmpty(folderPath))
-                        {
-                            continue;
-                        }
-                        CleanModFolder(folderPath);
-                        break;
+                        continue;
                     }
-                    case "1":
-                        RegisterContextMenu(args);
-                        break;
+                    CleanModFolder(folderPath);
+                    break;
                 }
+                case "1":
+                    RegisterContextMenu(args);
+                    break;
             }
-            break;
         }
     }
 
