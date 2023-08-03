@@ -1,7 +1,8 @@
 bak
-prev
 backup
+.prev
 .js
+.json
+.log
 .rar
 .zip
-json
