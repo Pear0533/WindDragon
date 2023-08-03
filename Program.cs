@@ -21,7 +21,7 @@ internal class Program
     private static void RegisterContextMenu(IReadOnlyList<string> args)
     {
         Console.Write("Enter R to register, U to unregister, or anything else to exit from context menu registration.\n> ");
-        string? option = Console.ReadLine();
+        string? option = Console.ReadLine()?.ToUpper();
         if (string.IsNullOrEmpty(option) || option != "R" && option != "U")
         {
             MainMenu(args);
@@ -149,6 +149,7 @@ internal class Program
         catch (Exception e)
         {
             Console.WriteLine($"Failed to read one or more required configuration files.\n\nReason:\n\n{e}");
+            Console.ReadKey();
             return false;
         }
     }
